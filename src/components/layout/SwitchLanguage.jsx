@@ -1,5 +1,10 @@
+"use client";
+
 import * as React from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import { setLanguage } from "../../redux/slices/codeSlice";
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,29 +20,23 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { languages } from "../../lib/languages";
 
-const frameworks = [
-  {
-    value: "cpp",
-    label: "C++",
-  },
-  {
-    value: "python",
-    label: "Python",
-  },
-  {
-    value: "javascript",
-    label: "JavaScript",
-  },
-  {
-    value: "java",
-    label: "Java",
-  },
-];
-
-export function SwitchLanguage() {
+export const SwitchLanguage = () => {
+  const dispatch = useDispatch();
+  const { language } = useSelector((state) => state.code);
   const [open, setOpen] = React.useState(false);
-  const [value, setValue] = React.useState("javascript");
+
+  const selectedLabel =
+    languages.find((lang) => lang.value === language)?.label ??
+    "Select language";
+
+  const handleSelect = (selected) => {
+    if (selected !== language) {
+      dispatch(setLanguage(selected));
+    }
+    setOpen(false);
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -48,32 +47,27 @@ export function SwitchLanguage() {
           aria-expanded={open}
           className="w-[200px] justify-between bg-transparent text-white border-gray-400"
         >
-          {value
-            ? frameworks.find((framework) => framework.value === value)?.label
-            : "Select language..."}
-          <ChevronsUpDown />
+          {selectedLabel}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0">
         <Command>
-          <CommandInput placeholder="Search language..." className="h-9" />
+          <CommandInput placeholder="Search language..." />
           <CommandList>
             <CommandEmpty>No language found.</CommandEmpty>
             <CommandGroup>
-              {frameworks.map((framework) => (
+              {languages.map((lang) => (
                 <CommandItem
-                  key={framework.value}
-                  value={framework.value}
-                  onSelect={(currentValue) => {
-                    setValue(currentValue === value ? "" : currentValue);
-                    setOpen(false);
-                  }}
+                  key={lang.value}
+                  value={lang.value}
+                  onSelect={(val) => handleSelect(val)}
                 >
-                  {framework.label}
+                  {lang.label}
                   <Check
                     className={cn(
-                      "ml-auto",
-                      value === framework.value ? "opacity-100" : "opacity-0"
+                      "ml-auto h-4 w-4",
+                      language === lang.value ? "opacity-100" : "opacity-0"
                     )}
                   />
                 </CommandItem>
@@ -84,4 +78,4 @@ export function SwitchLanguage() {
       </PopoverContent>
     </Popover>
   );
-}
+};

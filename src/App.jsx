@@ -3,30 +3,32 @@ import { Main } from "./components/layout/Main";
 import { Navbar } from "./components/layout/Navbar";
 import { useDispatch } from "react-redux";
 import { setupSocket } from "./redux/slices/socketSlice";
-import useSocket from "./hooks/useSocket";
+import { useSelector } from "react-redux";
+import { listenEvent } from "./services/socketService";
+import { setOutput, setIsQueued, setIsRunning } from "./redux/slices/codeSlice";
 function App() {
   const dispatch = useDispatch();
+  const { connected } = useSelector((state) => state.socket);
   useEffect(() => {
     dispatch(setupSocket());
   }, [dispatch]);
-  const { connected, error, emitEvent, listenEvent } = useSocket();
 
   useEffect(() => {
-    listenEvent("get-submitted-code", (data) => {
-      console.log(data);
-    });
-  }, [listenEvent]);
-
-  const handleRunCode = () => {
     if (connected) {
-      emitEvent("submit-code", { code });
-    } else {
-      console.error("error", error);
+      listenEvent("code:get-submission", (data) => {
+        dispatch(setOutput(data));
+        dispatch(setIsQueued(false));
+        dispatch(setIsRunning(false));
+      });
+      listenEvent("code:queued", () => {
+        dispatch(setIsQueued(true));
+        dispatch(setIsRunning(false));
+      });
     }
-  };
+  }, [connected, dispatch]);
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-primary">
+    <div className="flex min-h-screen max-h-screen w-full flex-col bg-primary">
       <Navbar />
       <Main />
     </div>

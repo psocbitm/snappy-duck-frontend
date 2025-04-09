@@ -21,9 +21,9 @@ export const Main = () => {
             </div>
           </ResizablePanel>
           <ResizableHandle withHandle={true} className="bg-transparent" />
-          <ResizablePanel>
+          <ResizablePanel defaultSize={30} minSize={30} maxSize={70}>
             <ResizablePanelGroup direction="vertical">
-              <ResizablePanel>
+              <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
                 <div className="flex h-full items-center justify-center">
                   <InputContainer />
                 </div>
