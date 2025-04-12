@@ -35,7 +35,7 @@ function App() {
 
   return (
     <div className="flex min-h-screen max-h-screen w-full flex-col bg-primary">
-      {error ? (
+      {!connected ? (
         <div className="flex items-center justify-center h-screen">
           <div className="text-red-500 text-2xl font-bold">
             Socket server is not running
