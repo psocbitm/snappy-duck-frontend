@@ -5,7 +5,7 @@ import { useDispatch } from "react-redux";
 import { setupSocket } from "./redux/slices/socketSlice";
 import { useSelector } from "react-redux";
 import { listenEvent } from "./services/socketService";
-import { setOutput, setIsQueued, setIsRunning } from "./redux/slices/codeSlice";
+import { setOutput, setIsQueued, setIsRunning, setError } from "./redux/slices/codeSlice";
 function App() {
   const dispatch = useDispatch();
   const { connected } = useSelector((state) => state.socket);
@@ -16,7 +16,8 @@ function App() {
   useEffect(() => {
     if (connected) {
       listenEvent("code:get-submission", (data) => {
-        dispatch(setOutput(data));
+        dispatch(setOutput(data?.output));
+        dispatch(setError(data?.error));
         dispatch(setIsQueued(false));
         dispatch(setIsRunning(false));
       });

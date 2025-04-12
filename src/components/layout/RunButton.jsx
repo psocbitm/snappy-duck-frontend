@@ -19,7 +19,7 @@ export const RunButton = () => {
       onClick={handleRunCode}
       disabled={isRunning || isQueued}
     >
-      {isRunning ? "Running..." : isQueued ? "Queued" : "Run"}
+      {isRunning ? "Starting..." : isQueued ? "Queued..." : "Run"}
     </Button>
   );
 };
