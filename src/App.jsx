@@ -5,10 +5,15 @@ import { useDispatch } from "react-redux";
 import { setupSocket } from "./redux/slices/socketSlice";
 import { useSelector } from "react-redux";
 import { listenEvent } from "./services/socketService";
-import { setOutput, setIsQueued, setIsRunning, setError } from "./redux/slices/codeSlice";
+import {
+  setOutput,
+  setIsQueued,
+  setIsRunning,
+  setError,
+} from "./redux/slices/codeSlice";
 function App() {
   const dispatch = useDispatch();
-  const { connected } = useSelector((state) => state.socket);
+  const { connected, error } = useSelector((state) => state.socket);
   useEffect(() => {
     dispatch(setupSocket());
   }, [dispatch]);
@@ -30,8 +35,18 @@ function App() {
 
   return (
     <div className="flex min-h-screen max-h-screen w-full flex-col bg-primary">
-      <Navbar />
-      <Main />
+      {error ? (
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-red-500 text-2xl font-bold">
+            Socket server is not running
+          </div>
+        </div>
+      ) : (
+        <>
+          <Navbar />
+          <Main />
+        </>
+      )}
     </div>
   );
 }
