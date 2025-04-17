@@ -1,55 +1,68 @@
+// services/socketService.js
 import { io } from "socket.io-client";
 
 const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_SERVER_URL;
 
 let socket = null;
+let reconnectAttempts = 0;
+const MAX_RETRIES = 5;
+const BASE_DELAY = 1000;
 
-// Connects to the Socket.IO server
-const connectSocket = () => {
+const connectSocket = (
+  dispatch,
+  { onConnected, onDisconnected, onError, onMaxRetries }
+) => {
   if (!socket) {
     socket = io(SOCKET_SERVER_URL, {
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
+      autoConnect: false,
     });
 
     socket.on("connect", () => {
-      console.log("Connected to socket with id:", socket.id);
+      reconnectAttempts = 0;
+      onConnected(socket.id);
     });
 
     socket.on("disconnect", () => {
-      console.log("Disconnected from socket");
+      onDisconnected();
     });
 
     socket.on("connect_error", (err) => {
-      console.error("Socket connection error:", err);
+      console.error("Connection error:", err.message);
+      if (reconnectAttempts < MAX_RETRIES) {
+        reconnectAttempts++;
+        dispatch({
+          type: "socket/setReconnecting",
+          payload: reconnectAttempts,
+        });
+        const delay = BASE_DELAY * 2 ** (reconnectAttempts - 1);
+        setTimeout(() => socket.connect(), delay);
+      } else {
+        onMaxRetries();
+        onError(err.message || "Failed to connect");
+      }
     });
+
+    socket.connect();
   }
 
   return socket;
 };
 
-// Emits events to the server
 const emitEvent = (event, data) => {
-  if (socket && socket.connected) {
+  if (socket?.connected) {
     socket.emit(event, data);
-  } else {
-    console.error("Socket is not connected.");
   }
 };
 
-// Listens for specific events from the server
 const listenEvent = (event, callback) => {
-  if (socket) {
-    socket.on(event, callback);
-  }
+  socket?.on(event, callback);
 };
 
-// Disconnect the socket
 const disconnectSocket = () => {
   if (socket) {
     socket.disconnect();
     socket = null;
+    reconnectAttempts = 0;
   }
 };
 

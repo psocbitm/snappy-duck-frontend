@@ -1,3 +1,4 @@
+// redux/slices/socketSlice.js
 import { createSlice } from "@reduxjs/toolkit";
 import {
   connectSocket,
@@ -6,14 +7,15 @@ import {
   disconnectSocket,
 } from "../../services/socketService";
 
-// Initial state for Redux
 const initialState = {
   connected: false,
   socketId: null,
-  error: null, // Store only serializable error data
+  error: null,
+  reconnecting: false,
+  attempt: 0,
+  maxRetriesReached: false,
 };
 
-// Redux slice for managing socket state
 const socketSlice = createSlice({
   name: "socket",
   initialState,
@@ -21,60 +23,67 @@ const socketSlice = createSlice({
     setConnectionStatus(state, action) {
       state.connected = action.payload.connected;
       state.socketId = action.payload.socketId;
+      state.reconnecting = false;
+      state.attempt = 0;
+      state.error = null;
+      state.maxRetriesReached = false;
     },
     setError(state, action) {
-      // Save only the error message or type, not the entire error object
-      state.error = action.payload.message || "Unknown error";
+      state.error = action.payload || "Unknown error";
+    },
+    setReconnecting(state, action) {
+      state.reconnecting = true;
+      state.attempt = action.payload;
+    },
+    setMaxRetriesReached(state) {
+      state.reconnecting = false;
+      state.maxRetriesReached = true;
+    },
+    resetSocketState(state) {
+      Object.assign(state, initialState);
     },
   },
 });
 
-// Thunks for managing socket connection state
 export const setupSocket = () => (dispatch) => {
-  const socketInstance = connectSocket();
-
-  socketInstance.on("connect", () => {
-    dispatch(
-      setConnectionStatus({ connected: true, socketId: socketInstance.id })
-    );
-  });
-
-  socketInstance.on("disconnect", () => {
-    dispatch(setConnectionStatus({ connected: false, socketId: null }));
-  });
-
-  socketInstance.on("connect_error", (err) => {
-    // Handle error: dispatch only the message part of the error
-    dispatch(setError({ message: err.message || "Socket connection failed" }));
-    dispatch(setConnectionStatus({ connected: false, socketId: null }));
+  connectSocket(dispatch, {
+    onConnected: (socketId) => {
+      dispatch(
+        socketSlice.actions.setConnectionStatus({ connected: true, socketId })
+      );
+    },
+    onDisconnected: () => {
+      dispatch(socketSlice.actions.resetSocketState());
+    },
+    onError: (message) => {
+      dispatch(socketSlice.actions.setError(message));
+    },
+    onMaxRetries: () => {
+      dispatch(socketSlice.actions.setMaxRetriesReached());
+    },
   });
 };
 
-// Action to emit events
 export const socketEmitEvent = (event, data) => (dispatch, getState) => {
   const { connected } = getState().socket;
-  if (connected) {
-    emitEvent(event, data);
-  } else {
-    console.error("Socket is not connected");
-  }
+  if (connected) emitEvent(event, data);
 };
 
-// Action to listen for events
-export const socketListenEvent = (event, callback) => (dispatch, getState) => {
-  const { connected } = getState().socket;
-  if (connected) {
-    listenEvent(event, callback);
-  }
+export const socketListenEvent = (event, callback) => () => {
+  listenEvent(event, callback);
 };
 
-// Action to disconnect the socket
 export const disconnectSocketAction = () => (dispatch) => {
   disconnectSocket();
-  dispatch(setConnectionStatus({ connected: false, socketId: null }));
-  dispatch(setError({ message: "Disconnected" }));
+  dispatch(socketSlice.actions.resetSocketState());
 };
 
-// Exporting actions
-export const { setConnectionStatus, setError } = socketSlice.actions;
+export const {
+  setConnectionStatus,
+  setError,
+  setReconnecting,
+  setMaxRetriesReached,
+  resetSocketState,
+} = socketSlice.actions;
+
 export default socketSlice.reducer;

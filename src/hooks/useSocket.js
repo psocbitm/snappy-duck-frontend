@@ -1,5 +1,8 @@
 import { useDispatch, useSelector } from "react-redux";
-import { socketEmitEvent, socketListenEvent } from "../redux/slices/socketSlice";
+import {
+  socketEmitEvent,
+  socketListenEvent,
+} from "../redux/slices/socketSlice";
 
 const useSocket = () => {
   const dispatch = useDispatch();
